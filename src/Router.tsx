@@ -4,12 +4,12 @@ import Coins from "./routes/Coins";
 
 const Router = () => {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={process.env.PUBLIC_URL}>
       <Switch>
-        <Route path="/react-cointracker/:coinId">
+        <Route path="/:coinId">
           <Coin />
         </Route>
-        <Route path="/react-cointracker">
+        <Route path="/">
           <Coins />
         </Route>
       </Switch>
