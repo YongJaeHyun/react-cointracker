@@ -87,12 +87,22 @@ const ToggleBG = styled.button<{ isChecked: boolean }>`
   position: relative;
   cursor: pointer;
   color: ${(props) => (props.isChecked ? "whitesmoke" : "#353b48")};
+  transition: all 0.2s ease-in-out;
+  &:hover {
+    border-color: ${(props) => props.theme.accentColor};
+    span {
+      color: ${(props) => props.theme.accentColor};
+    }
+    div {
+      background-color: ${(props) => props.theme.accentColor};
+    }
+  }
 `;
 
 const ToggleText = styled.span<{ isChecked: boolean }>`
   left: ${(props) => (props.isChecked ? "8px" : "38px")};
   position: absolute;
-  transition: all 0.5s ease-in-out;
+  transition: all 0.4s ease-in-out;
 `;
 
 const ToggleFG = styled.div<{ isChecked: boolean }>`
@@ -102,7 +112,7 @@ const ToggleFG = styled.div<{ isChecked: boolean }>`
   background-color: ${(props) => (props.isChecked ? "white" : "black")};
   left: ${(props) => (props.isChecked ? "45px" : "3px")};
   position: absolute;
-  transition: all 0.5s ease-in-out;
+  transition: all 0.4s ease-in-out;
 `;
 
 const Description = styled.p`
