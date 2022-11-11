@@ -1,9 +1,14 @@
-import { useState, useEffect } from "react";
 import { useParams, useLocation } from "react-router";
 import { Switch, Route, Link, useRouteMatch } from "react-router-dom";
 import styled from "styled-components";
 import Chart from "./Chart";
 import Price from "./Price";
+import { useQuery } from "react-query";
+import { fetchCoinInfo, fetchCoinTickers } from "../api";
+import { Helmet } from "react-helmet";
+import { useRecoilValue, useSetRecoilState } from "recoil";
+import { isLightAtom } from "../atoms";
+import { useState } from "react";
 
 const Container = styled.div`
   padding: 0px 20px;
@@ -35,17 +40,71 @@ const Overview = styled.div`
   padding: 10px 20px;
   border-radius: 10px;
 `;
+
 const OverviewItem = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
   span:first-child {
-    font-size: 10px;
-    font-weight: 400;
+    font-size: 14px;
+    font-weight: 800;
     text-transform: uppercase;
     margin-bottom: 5px;
   }
 `;
+
+const Utils = styled.div`
+  display: flex;
+  justify-content: space-between;
+  border-radius: 10px;
+`;
+
+const HomeBtn = styled.div`
+  display: flex;
+  justify-content: center;
+  width: 90px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+  margin-bottom: 3vh;
+  transition: all 0.2s ease-in-out;
+  a {
+    padding: 8px 10px;
+  }
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.5);
+    color: whitesmoke;
+  }
+`;
+
+const ToggleBG = styled.button<{ isChecked: boolean }>`
+  display: flex;
+  width: 80px;
+  height: 35px;
+  border: 2px solid ${(props) => (props.isChecked ? "white" : "black")};
+  border-radius: 20px;
+  align-items: center;
+  background-color: ${(props) => (props.isChecked ? "#353b48" : "whitesmoke")};
+  position: relative;
+  cursor: pointer;
+  color: ${(props) => (props.isChecked ? "whitesmoke" : "#353b48")};
+`;
+
+const ToggleText = styled.span<{ isChecked: boolean }>`
+  left: ${(props) => (props.isChecked ? "8px" : "38px")};
+  position: absolute;
+  transition: all 0.5s ease-in-out;
+`;
+
+const ToggleFG = styled.div<{ isChecked: boolean }>`
+  width: 26px;
+  height: 26px;
+  border-radius: 15px;
+  background-color: ${(props) => (props.isChecked ? "white" : "black")};
+  left: ${(props) => (props.isChecked ? "45px" : "3px")};
+  position: absolute;
+  transition: all 0.5s ease-in-out;
+`;
+
 const Description = styled.p`
   margin: 20px 0px;
 `;
@@ -60,7 +119,7 @@ const Tabs = styled.div`
 const Tab = styled.span<{ isActive: boolean }>`
   text-align: center;
   text-transform: uppercase;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 400;
   background-color: rgba(0, 0, 0, 0.5);
   padding: 7px 0px;
@@ -137,69 +196,85 @@ interface PriceData {
 }
 
 const Coin = () => {
-  const [loading, setLoading] = useState(true);
   const { coinId } = useParams<RouteParams>();
   const { state } = useLocation<RouteState>();
-  const [info, setInfo] = useState<InfoData>();
-  const [priceInfo, setPriceInfo] = useState<PriceData>();
-
   const priceMatch = useRouteMatch("/:coinId/price");
   const chartMatch = useRouteMatch("/:coinId/chart");
+  const isLight = useRecoilValue(isLightAtom);
+  const [isChecked, setIsChecked] = useState(!isLight);
+  const setIsLight = useSetRecoilState(isLightAtom);
 
-  const getCoinData = async () => {
-    const infoData = await (
-      await fetch(`https://api.coinpaprika.com/v1/coins/${coinId}`)
-    ).json();
-    const priceData = await (
-      await fetch(`https://api.coinpaprika.com/v1/tickers/${coinId}`)
-    ).json();
-    setInfo(infoData);
-    setPriceInfo(priceData);
-    setLoading(false);
-  };
+  const { isLoading: infoLoading, data: infoData } = useQuery<InfoData>(
+    ["info", coinId],
+    () => fetchCoinInfo(coinId),
+    {
+      refetchInterval: 10000,
+    }
+  );
+  const { isLoading: tickersLoading, data: tickersData } = useQuery<PriceData>(
+    ["tickers", coinId],
+    () => fetchCoinTickers(coinId)
+  );
 
-  useEffect(() => {
-    getCoinData();
-  });
-
+  const loading = infoLoading || tickersLoading;
   return (
     <Container>
+      <Helmet>
+        <title>
+          {state?.name ? state.name : loading ? "Loading..." : infoData?.name}
+        </title>
+      </Helmet>
       <Header>
         <Title>
-          {state?.name ? state.name : loading ? "Loading..." : info?.name}
+          {state?.name ? state.name : loading ? "Loading..." : infoData?.name}
         </Title>
       </Header>
       {loading ? (
         <Loader>Loading...</Loader>
       ) : (
         <>
+          <Utils>
+            <HomeBtn>
+              <Link to="/">&larr; Home</Link>
+            </HomeBtn>
+            <ToggleBG
+              isChecked={isChecked}
+              onClick={() => {
+                setIsChecked(!isChecked);
+                setIsLight(!isLight);
+              }}
+            >
+              <ToggleText isChecked={isChecked}>
+                {isChecked ? "Dark" : "Light"}
+              </ToggleText>
+              <ToggleFG isChecked={isChecked} />
+            </ToggleBG>
+          </Utils>
           <Overview>
             <OverviewItem>
               <span>Rank:</span>
-              <span>{info?.rank}</span>
+              <span>{infoData?.rank}</span>
             </OverviewItem>
             <OverviewItem>
               <span>Symbol:</span>
-              <span>${info?.symbol}</span>
+              <span>${infoData?.symbol}</span>
             </OverviewItem>
             <OverviewItem>
-              <span>Open Source:</span>
-              <span>{info?.open_source ? "Yes" : "No"}</span>
+              <span>Price:</span>
+              <span>${tickersData?.quotes.USD.price.toFixed(3)}</span>
             </OverviewItem>
           </Overview>
-          <Description>{info?.description}</Description>
+          <Description>{infoData?.description}</Description>
           <Overview>
             <OverviewItem>
               <span>Total Suply:</span>
-              <span>{priceInfo?.total_supply}</span>
+              <span>{tickersData?.total_supply}</span>
             </OverviewItem>
             <OverviewItem>
               <span>Max Supply:</span>
-              <span>{priceInfo?.max_supply}</span>
+              <span>{tickersData?.max_supply}</span>
             </OverviewItem>
           </Overview>
-          <Link to={`/${coinId}/price`}>Price</Link>
-          <Link to={`/${coinId}/chart`}>Chart</Link>
           <Tabs>
             <Tab isActive={chartMatch !== null}>
               <Link to={`/${coinId}/chart`}>Chart</Link>
@@ -210,10 +285,10 @@ const Coin = () => {
           </Tabs>
           <Switch>
             <Route path="/:coinId/price">
-              <Price />
+              <Price coinId={coinId} />
             </Route>
             <Route path="/:coinId/chart">
-              <Chart />
+              <Chart coinId={coinId} />
             </Route>
           </Switch>
         </>
