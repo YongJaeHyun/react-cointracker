@@ -16,6 +16,7 @@ const Table = styled.table<{ isLight: boolean }>`
   border-style: hidden;
   box-shadow: 0 0 0 1px ${(props) => (props.isLight ? "#353b48" : "white")};
   line-height: 30px;
+  margin-bottom: 20px;
 `;
 const Thead = styled.thead`
   border-spacing: 0;
@@ -60,6 +61,12 @@ const Price = ({ coinId }: ChartProps) => {
     ["ohlcv", coinId],
     () => fetchCoinHistory(coinId)
   );
+  const dateFormatter = new Intl.RelativeTimeFormat("en");
+  const dollarFormatter = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "usd",
+    maximumFractionDigits: 2,
+  });
   return (
     <div>
       {isLoading ? (
@@ -76,16 +83,15 @@ const Price = ({ coinId }: ChartProps) => {
           <Tbody>
             {priceData?.map(({ open, close, high, low }, index) => (
               <Tr key={open + close + low + high}>
-                <Td>- {index + 1} day</Td>
+                <Td>{dateFormatter.format((index + 1) * -1, "day")}</Td>
                 <Td>${open}</Td>
                 <Td>${close}</Td>
                 <Td>${high}</Td>
                 <Td>${low}</Td>
                 <Td>
-                  {(parseInt(close) - parseInt(priceData[index + 1]?.close))
-                    .toString()
-                    .replace(/^[0-9]/, "$$$&")
-                    .replace("-", "-$")}
+                  {dollarFormatter.format(
+                    parseFloat(close) - parseFloat(priceData[index + 1]?.close)
+                  )}
                 </Td>
               </Tr>
             ))}
